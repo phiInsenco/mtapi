@@ -58,6 +58,9 @@ namespace MtApi5
         [JsonProperty("Order")]
         public long Order { get; set; }
 
+        [JsonProperty("Reason")]
+        public int Reason { get; set; }
+
         // ===== Numeric values =====
 
         [JsonProperty("Volume")]
@@ -74,5 +77,14 @@ namespace MtApi5
 
         [JsonProperty("Profit")]
         public double Profit { get; set; }
+
+        [JsonProperty("Fee")]
+        public double Fee { get; set; }
+
+        [JsonProperty("Sl")]
+        public double Sl { get; set; }
+
+        [JsonProperty("Tp")]
+        public double Tp { get; set; }
     }
 }
