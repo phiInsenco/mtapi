@@ -47,6 +47,14 @@ namespace MtApi5
         [JsonProperty("PositionType")]
         public double PositionTypeRaw { get; set; }
 
+        // HistoryPosition: "Position" | "Balance". Dùng field này (không dùng PositionType) để phân loại dòng
+        [JsonProperty("RecordKind")]
+        public string RecordKind { get; set; } = string.Empty;
+
+        // Raw MT5 ENUM_DEAL_TYPE (2 = balance, 3 = credit, ...)
+        [JsonProperty("DealType")]
+        public double DealTypeRaw { get; set; }
+
         [JsonProperty("Magic")]
         public double MagicRaw { get; set; }
 
@@ -92,6 +100,19 @@ namespace MtApi5
         // ----- Helpers đã ép kiểu tiện dùng trong code -----
         [JsonIgnore]
         public int PositionType => (int)Math.Round(PositionTypeRaw);
+
+        [JsonIgnore]
+        public int DealType => (int)Math.Round(DealTypeRaw);
+
+        [JsonIgnore]
+        public bool IsBalanceRecord => RecordKind == RecordKindBalance;
+
+        [JsonIgnore]
+        public bool IsWithdrawal => IsBalanceRecord && DealType == DealTypeBalance && Profit < 0;
+
+        public const string RecordKindPosition = "Position";
+        public const string RecordKindBalance = "Balance";
+        private const int DealTypeBalance = 2;
 
         [JsonIgnore]
         public long Magic => (long)Math.Round(MagicRaw);

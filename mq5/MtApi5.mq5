@@ -630,6 +630,8 @@ struct HistPosData {
    ulong   TimeOpenMsc;
    ulong   TimeCloseMsc;
    int     PositionType;
+   string  RecordKind;     // "Position" | "Balance"
+   int     DealType;       // raw ENUM_DEAL_TYPE
    long    Magic;
    long    Identifier;
    int     OpenReason;
@@ -987,6 +989,9 @@ string ExportClosedPositionsToJson(datetime from_time, datetime to_time)
          d.TimeOpenMsc  = hist.TimeOpenMsc();
          d.TimeCloseMsc = hist.TimeCloseMsc();
          d.PositionType = (int)hist.PositionType();
+         d.RecordKind   = "Position";
+         // opening deal type: POSITION_TYPE_BUY/SELL == DEAL_TYPE_BUY/SELL (0/1)
+         d.DealType     = (int)hist.PositionType();
          d.Magic        = hist.Magic();
          d.Identifier   = hist.Identifier();
          d.OpenReason   = (int)hist.OpenReason();
@@ -1033,7 +1038,9 @@ string ExportClosedPositionsToJson(datetime from_time, datetime to_time)
             d.TimeOpenMsc  = 0;
             d.TimeCloseMsc = 0;
 
-            d.PositionType = bal.DealType();
+            d.PositionType = 0;   // not a position: use RecordKind to classify
+            d.RecordKind   = "Balance";
+            d.DealType     = (int)bal.DealType();
             d.Magic        = 0;
             d.Identifier   = 0;
             d.OpenReason   = (int)bal.Reason();
@@ -1855,13 +1862,15 @@ string Execute_CopyTime()
 JSONObject* MqlDealToJson(ulong ticket)
 {
    JSONObject *jo = new JSONObject();
-   
+   CDealInfo di;
+   di.Ticket(ticket);
+
    // Integer properties
    jo.put("Ticket",        new JSONNumber(ticket));
    jo.put("Order",         new JSONNumber(HistoryDealGetInteger(ticket, DEAL_ORDER)));
-   jo.put("Time",          new JSONNumber(HistoryDealGetInteger(ticket, DEAL_TIME)));
+   jo.put("Time",          new JSONString(TimeToString((datetime)HistoryDealGetInteger(ticket, DEAL_TIME), TIME_DATE|TIME_SECONDS)));
    jo.put("TimeMsc",       new JSONNumber(HistoryDealGetInteger(ticket, DEAL_TIME_MSC)));
-   jo.put("Type",          new JSONNumber((int)HistoryDealGetInteger(ticket, DEAL_TYPE)));
+   jo.put("DealType",      new JSONNumber((int)HistoryDealGetInteger(ticket, DEAL_TYPE)));   // raw ENUM_DEAL_TYPE
    jo.put("Entry",         new JSONNumber((int)HistoryDealGetInteger(ticket, DEAL_ENTRY)));
    jo.put("Magic",         new JSONNumber(HistoryDealGetInteger(ticket, DEAL_MAGIC)));
    jo.put("Reason",        new JSONNumber((int)HistoryDealGetInteger(ticket, DEAL_REASON)));
@@ -1881,7 +1890,9 @@ JSONObject* MqlDealToJson(ulong ticket)
    jo.put("Symbol",        new JSONString(HistoryDealGetString(ticket, DEAL_SYMBOL)));
    jo.put("Comment",       new JSONString(HistoryDealGetString(ticket, DEAL_COMMENT)));
    jo.put("ExternalId",    new JSONString(HistoryDealGetString(ticket, DEAL_EXTERNAL_ID)));
-   
+   jo.put("TypeDescription",  new JSONString(di.TypeDescription()));
+   jo.put("EntryDescription", new JSONString(di.EntryDescription()));
+
    return jo;
 }
 
@@ -1895,12 +1906,14 @@ string Execute_GetDealHistories()
    
    if(!::HistorySelect(from_date, to_date))
    {
-      Print(__FUNCTION__, " > HistorySelect failed: ", GetLastError());
-      return false;
+      int err = GetLastError();
+      Print(__FUNCTION__, " > HistorySelect failed: ", err);
+      return CreateErrorResponse(err != 0 ? err : -1, "HistorySelect failed");
    }
 
    int total = HistoryDealsTotal();
    JSONArray* jaDeals = new JSONArray();
+   int idx = 0;
 
    for (int i = 0; i < total; i++)
    {
@@ -1908,7 +1921,7 @@ string Execute_GetDealHistories()
       if (ticket == 0)
          continue;
 
-      jaDeals.put(i, MqlDealToJson(ticket));
+      jaDeals.put(idx++, MqlDealToJson(ticket));
    }
 
    return CreateSuccessResponse(jaDeals);
@@ -5061,6 +5074,8 @@ class MtHistoryPosition : public MtObject
       jo.put("TimeCloseMsc", new JSONNumber((double)_d.TimeCloseMsc));
 
       jo.put("PositionType", new JSONNumber((double)_d.PositionType));
+      jo.put("RecordKind",   new JSONString(_d.RecordKind));
+      jo.put("DealType",     new JSONNumber((double)_d.DealType));
       jo.put("Magic",        new JSONNumber((double)_d.Magic));
       jo.put("Identifier",   new JSONNumber((double)_d.Identifier));
       jo.put("OpenReason",   new JSONNumber((double)_d.OpenReason));
@@ -5520,7 +5535,9 @@ bool CHistoryBalanceDealInfo::HistorySelect(datetime from_date, datetime to_date
    {
       if(m_deal.SelectByIndex(i))
       {
-         if(m_deal.DealType() != DEAL_TYPE_BUY && m_deal.DealType() != DEAL_TYPE_SELL)
+         ENUM_DEAL_TYPE type = m_deal.DealType();
+         if(type != DEAL_TYPE_BUY && type != DEAL_TYPE_SELL &&
+            type != DEAL_TYPE_BUY_CANCELED && type != DEAL_TYPE_SELL_CANCELED)
          {
             m_tickets.Add(m_deal.Ticket());
          }
