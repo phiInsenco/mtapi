@@ -4960,11 +4960,11 @@ public:
       jo.put("Ticket",          new JSONString(_d.TicketStr));
       jo.put("Symbol",          new JSONString(_d.Symbol));
       jo.put("TypeDescription", new JSONString(_d.TypeDesc));
-      jo.put("Comment",         new JSONString(_d.Comment));
+      jo.put("OpenComment",     new JSONString(_d.Comment));
 
-      jo.put("Time",            new JSONString(TimeToString(_d.Time,       TIME_DATE|TIME_SECONDS)));
+      jo.put("TimeOpen",        new JSONString(TimeToString(_d.Time,       TIME_DATE|TIME_SECONDS)));
       jo.put("TimeUpdate",      new JSONString(TimeToString(_d.TimeUpdate, TIME_DATE|TIME_SECONDS)));
-      jo.put("TimeMsc",         new JSONNumber((double)_d.TimeMsc));
+      jo.put("TimeOpenMsc",     new JSONNumber((double)_d.TimeMsc));
       jo.put("TimeUpdateMsc",   new JSONNumber((double)_d.TimeUpdateMsc));
 
       jo.put("PositionType",    new JSONNumber((double)_d.PositionType));
