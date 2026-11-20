@@ -126,26 +126,16 @@ namespace MtApi5
         [JsonIgnore]
         public long TimeDoneMsc => (long)Math.Round(TimeDoneMscRaw);
 
+        // Giờ server broker, Kind = Unspecified (không đổi múi giờ).
+        // Ưu tiên *Msc (chính xác tới mili-giây); Msc = 0 → fallback chuỗi.
         [JsonIgnore]
-        public DateTime? TimeSetup => TryParseMtTime(TimeSetupRaw);
+        public DateTime? TimeSetup => Mt5ServerTime.FromMscOrString(TimeSetupMsc, TimeSetupRaw);
 
         [JsonIgnore]
-        public DateTime? TimeDone => TryParseMtTime(TimeDoneRaw);
+        public DateTime? TimeDone => Mt5ServerTime.FromMscOrString(TimeDoneMsc, TimeDoneRaw);
 
+        // Expiration không có Msc → chỉ parse chuỗi.
         [JsonIgnore]
-        public DateTime? Expiration => TryParseMtTime(ExpirationRaw);
-
-        private static DateTime? TryParseMtTime(string s)
-        {
-            if (string.IsNullOrWhiteSpace(s)) return null;
-            if (DateTime.TryParseExact(s, "yyyy.MM.dd HH:mm:ss",
-                CultureInfo.InvariantCulture, DateTimeStyles.AssumeLocal, out var dt))
-                return dt;
-
-            if (DateTime.TryParse(s, CultureInfo.InvariantCulture, DateTimeStyles.AssumeLocal, out dt))
-                return dt;
-
-            return null;
-        }
+        public DateTime? Expiration => Mt5ServerTime.Parse(ExpirationRaw);
     }
 }

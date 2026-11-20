@@ -111,19 +111,10 @@ namespace MtApi5
         [JsonIgnore] public int Spread => (int)Math.Round(SpreadRaw);
         [JsonIgnore] public int BookDepth => (int)Math.Round(BookDepthRaw);
 
-        // (Tuỳ chọn) Parse chuỗi thời gian của MT5
-        [JsonIgnore] public DateTime? TimeParsed => TryParseMtTime(Time);
-        [JsonIgnore] public DateTime? StartTimeParsed => TryParseMtTime(StartTime);
-        [JsonIgnore] public DateTime? ExpirationTimeParsed => TryParseMtTime(ExpirationTime);
-
-        private static DateTime? TryParseMtTime(string s)
-        {
-            if (string.IsNullOrWhiteSpace(s)) return null;
-            string[] fmts = { "yyyy.MM.dd HH:mm:ss", "yyyy.MM.dd HH:mm", "yyyy-MM-dd HH:mm:ss", "yyyy-MM-dd HH:mm" };
-            if (DateTime.TryParseExact(s, fmts, System.Globalization.CultureInfo.InvariantCulture,
-                System.Globalization.DateTimeStyles.AssumeLocal, out var dt)) return dt;
-            if (DateTime.TryParse(s, out dt)) return dt;
-            return null;
-        }
+        // (Tuỳ chọn) Parse chuỗi thời gian của MT5 — giờ server broker, Kind = Unspecified.
+        // SymbolInfo không có Msc → chỉ parse chuỗi.
+        [JsonIgnore] public DateTime? TimeParsed => Mt5ServerTime.Parse(Time);
+        [JsonIgnore] public DateTime? StartTimeParsed => Mt5ServerTime.Parse(StartTime);
+        [JsonIgnore] public DateTime? ExpirationTimeParsed => Mt5ServerTime.Parse(ExpirationTime);
     }
 }

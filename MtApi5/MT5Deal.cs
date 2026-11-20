@@ -41,6 +41,14 @@ namespace MtApi5
         [JsonProperty("TimeMsc")]
         public long TimeMsc { get; set; }
 
+        /// <summary>
+        /// Deal time from <see cref="TimeMsc"/> (ms precision), falling back to <see cref="Time"/>.
+        /// Value is broker SERVER time, Kind = Unspecified (no timezone conversion).
+        /// Convert by broker offset in consumers.
+        /// </summary>
+        [JsonIgnore]
+        public DateTime? TimeParsed => Mt5ServerTime.FromMscOrString(TimeMsc, Time);
+
         // ===== Types / identifiers =====
 
         [JsonProperty("DealType")]
